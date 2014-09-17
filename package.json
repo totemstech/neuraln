@@ -1,0 +1,17 @@
+{
+  "name": "neuraln",
+  "version": "0.1.2",
+  "description": "Multi-Threaded Neural network for Node.js",
+  "keywords": ["neural","network","multi","thread","classification","ai"],
+  "homepage": "https://github.com/teleportd/neuraln",
+  "author": { "name": "Anthony MOI",
+              "email": "anthony@teleportd.com",
+              "url": "https://github.com/n1t0" },
+  "repository": { "type": "git",
+                  "url": "https://github.com/teleportd/neuraln.git" },
+  "dependencies": {},
+  "main": "index.js",
+  "engines": {
+    "node": "v0.10.x"
+  }
+}
