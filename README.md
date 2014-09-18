@@ -11,19 +11,19 @@ compared to existing solutions:
 With Node.js and the V8, it is not possible to work with large datasets since
 the maximum allowed memory is around 512MB for 32-bits machines and 1GB for
 64-bits machines. When you are working with datasets of several gigabytes, it
-fast becomes difficult to train you network with all your data.
+quickly becomes difficult to train you network with all your data.
 
 NeuralN allows you to use datasets as big as your memory can contain.
 
 #### Multi-Threaded
 
-Working with large datasets increase the performances of your final network,
-but the learning period can sometimes last several days or even weeks to obtain
-good results.
+Working with large datasets increases the performances of your final network,
+but the learning period can sometimes take up several days or even weeks to
+obtain good results.
 
-With the multithread training method of NeuralN, you can simply divide the
-needed time, by training your network simultaneously on different parts of your
-dataset. The results of each iterations are then combined.
+With the multi-threaded training method of NeuralN, you can significantly reduce
+the duration of the learning phase, by training your network simultaneously on
+different parts of your dataset. The results of each iteration are then combined.
 
 ## Install
 
@@ -68,9 +68,9 @@ var network = new NeuralN(network_string);
 
 Instantiate a new network with the following parameters:
 - `layers` is an array representing the layers of the network
-- `momentum` is a number between 0 and 1. This parameter is optional and default to `0.3`
-- `learning_rate` is a number. This parameter is optional and default to `0.1`
-- `bias` is a number. This parameter is optional and default to `-1`
+- `momentum` is a number between 0 and 1. This parameter is optional and defaults to `0.3`
+- `learning_rate` is a number. This parameter is optional and defaults to `0.1`
+- `bias` is a number. This parameter is optional and defaults to `-1`
 
 Or
 
@@ -90,7 +90,7 @@ network.train(target_error, max_iterations);
 
 Train the network with the training set until the `target_error` or the
 `max_iterations` has been reached. These two parameters are optional and
-defaults to:
+default to:
 - `target_error: 0.01`
 - `iterations: 20000`
 
@@ -99,7 +99,7 @@ network.mt_train(target_error, max_iterations, step_size, threads, callback);
 ```
 
 Train the network using the multi-threaded method. The first two parameters are
-exactly the same as for `train`.
+exactly the same as for the `train` method. The others are:
 - `step_size` represents the number of points of the training set to use by
 thread at each iteration. Default to `100`
 - `threads` represents the number of threads to be used for the training.
