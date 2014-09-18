@@ -34,10 +34,10 @@ npm install neuraln
 ## How it works
 
 ```javascript
-var NN = require('neuraln');
+var NeuralN = require('neuraln');
 
 /* Create a neural network with 4 layers (2 hidden layers) */
-var network = new NN([ 1, 4, 3, 1 ]);
+var network = new NeuralN([ 1, 4, 3, 1 ]);
 
 /* Add points to the training set */
 for(var i = -1; i < 1; i+=0.1) {
@@ -53,17 +53,17 @@ network.mt_train(0.005, 10000, 20, 4, function(err) {
 });
 
 /* Run */
-var result = network.run((Math.random() * 2) - 1);
+var result = network.run([ (Math.random() * 2) - 1 ]);
 
 /* Retrieve the network's string representation */
 var string = network.to_string();
 ```
 
-## Methods
+## Instantiation & Methods
 
 ```javascript
-var network = new NN(layers, momentum, learning_rate, bias);
-var network = new NN(string);
+var network = new NeuralN(layers, momentum, learning_rate, bias);
+var network = new NeuralN(network_string);
 ```
 
 Instantiate a new network with the following parameters:
@@ -74,22 +74,25 @@ Instantiate a new network with the following parameters:
 
 Or
 
-- `string` a string from a previous network (using `to_string`)
+- `network_string` a string from a previous network (using `to_string`)
 
 ```javascript
 network.train_set_add(input, output);
 ```
 
 Add a training data point with `input` and `output` being arrays of numbers.
-`input` and `output` must contain as many values as the first and last layers'
-number of neurons.
+`input` and `output` must contain as many values as the number of neurons of the
+first and last layers
 
 ```javascript
 network.train(target_error, max_iterations);
 ```
 
 Train the network with the training set until the `target_error` or the
-`max_iterations` has been reached.
+`max_iterations` has been reached. These two parameters are optional and
+defaults to:
+- `target_error: 0.01`
+- `iterations: 20000`
 
 ```javascript
 network.mt_train(target_error, max_iterations, step_size, threads, callback);
@@ -97,10 +100,13 @@ network.mt_train(target_error, max_iterations, step_size, threads, callback);
 
 Train the network using the multi-threaded method. The first two parameters are
 exactly the same as for `train`.
-`step_size` represents the number of points of the training set to use by thread
-at each iteration.
-`threads` represents the number of threads to be used for the training.
-`callback(err)` is called once the training is done.
+- `step_size` represents the number of points of the training set to use by
+thread at each iteration. Default to `100`
+- `threads` represents the number of threads to be used for the training.
+Default to `4`
+- `callback(err)` is called once the training is done.
+
+All these parameters are optional except for the `callback`
 
 ```javascript
 network.run(input)
@@ -114,6 +120,53 @@ network.to_string()
 
 Returns a string representation of the network in order to save and reload it
 later
+
+```javascript
+network.get_state()
+```
+
+Returns a string representation of each neuron of the network. It allows you to
+understand which entrance neurons most impacted the final result.
+
+## Static methods
+
+```javascript
+NeuralN.string_to_json(network_string);
+
+// Example:
+{ layers: [ 1, 4, 3, 1 ],
+  momentum: 0.3,
+  learning_rate: 0.1,
+  bias: -1,
+  biases:
+   [ [],
+     [ -0.00000901958, -0.00000414136, 0.00000156238, -0.00000275219 ],
+     [ 0.000125352, 0.000145129, 0.000285706 ],
+     [ -0.00914877 ] ],
+  weights:
+   [ [],
+     [ [ 0.218714 ], [ 0.285424 ], [ 0.236087 ], [ 0.329174 ] ],
+     [ [ 0.0541952, -0.057953, -0.0293854, 0.030311 ],
+       [ -0.106412, -0.0125738, 0.0167244, -0.117874 ],
+       [ -0.0977025, -0.0275803, 0.0262269, 0.00674729 ] ],
+     [ [ -0.0480921, -0.0574143, -0.118449 ] ] ] }
+```
+
+Converts a network string to its json representation
+
+```javascript
+NeuralN.state_to_json(network_state);
+
+// Example:
+{ layers: [ 1, 4, 3, 1 ],
+  values:
+   [ [ 0.999726 ],
+     [ 0.554449, 0.570857, 0.558733, 0.581537 ],
+     [ 0.499512, 0.46866, 0.487097 ],
+     [ 0.475151 ] ] }
+```
+
+Converts a network state string to its json representation
 
 ## Contact us
 
