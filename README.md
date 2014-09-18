@@ -18,7 +18,7 @@ NeuralN allows you to use datasets as big as your memory can contain.
 #### Multi-Threaded
 
 Working with large datasets increases the performances of your final network,
-but the learning period can sometimes take up several days or even weeks to
+but the learning phase can sometimes take up to several days or even weeks to
 obtain good results.
 
 With the multi-threaded training method of NeuralN, you can significantly reduce
