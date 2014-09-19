@@ -44,12 +44,18 @@ for(var i = -1; i < 1; i+=0.1) {
   network.train_set_add([ i ], [ Math.abs(Math.sin(i)) ]);
 }
 
-/* Mono thread (blocking) training */
-network.train(0.005, 10000);
+/* Train the network with one of the two available methods */
+/* monothread (blocking) vs multithread (non-blocking)     */
+network.train({
+  target_error: 0.01,
+  iterations: 20000,
 
-/* Multi thread (non-blocking) training */
-network.mt_train(0.005, 10000, 20, 4, function(err) {
-  // Network is trained
+  multithread: true,
+  /* Relevant only when multithread is true: */
+  step_size: 100,
+  threads: 4
+}, function(err) {
+
 });
 
 /* Run */
@@ -57,6 +63,9 @@ var result = network.run([ (Math.random() * 2) - 1 ]);
 
 /* Retrieve the network's string representation */
 var string = network.to_string();
+
+/* Retrieve the network's state string */
+var state = netowrk.get_state();
 ```
 
 ## Instantiation & Methods
@@ -85,7 +94,7 @@ Add a training data point with `input` and `output` being arrays of numbers.
 first and last layers
 
 ```javascript
-network.train(target_error, max_iterations);
+network.train(options, callback);
 ```
 
 Train the network with the training set until the `target_error` or the
@@ -93,17 +102,11 @@ Train the network with the training set until the `target_error` or the
 default to:
 - `target_error: 0.01`
 - `iterations: 20000`
-
-```javascript
-network.mt_train(target_error, max_iterations, step_size, threads, callback);
-```
-
-Train the network using the multi-threaded method. The first two parameters are
-exactly the same as for the `train` method. The others are:
+- `multithread` is a boolean, which defaults to `false`.
 - `step_size` represents the number of points of the training set to use by
-thread at each iteration. Default to `100`
+thread at each iteration. Default to `100` (only with `multithread: true`)
 - `threads` represents the number of threads to be used for the training.
-Default to `4`
+Default to `4`  (only with `multithread: true`)
 - `callback(err)` is called once the training is done.
 
 All these parameters are optional except for the `callback`
@@ -128,10 +131,8 @@ network.get_state()
 Returns a string representation of each neuron of the network. It allows you to
 understand which entrance neurons most impacted the final result.
 
-## Static methods
-
 ```javascript
-NeuralN.string_to_json(network_string);
+network.to_json();
 
 // Example:
 { layers: [ 1, 4, 3, 1 ],
@@ -152,10 +153,11 @@ NeuralN.string_to_json(network_string);
      [ [ -0.0480921, -0.0574143, -0.118449 ] ] ] }
 ```
 
-Converts a network string to its json representation
+Returns a json representation of the network. This is not recommended when the
+network structure gets big.
 
 ```javascript
-NeuralN.state_to_json(network_state);
+network.get_state_json();
 
 // Example:
 { layers: [ 1, 4, 3, 1 ],
@@ -168,7 +170,8 @@ NeuralN.state_to_json(network_state);
      [ [ 1.38492, -0.294276, -0.362479 ] ] ] }
 ```
 
-Converts a network state string to its json representation
+Returns a json representation of the network's state. This is not recommended
+when the network structure gets big.
 
 ## Contact us
 
