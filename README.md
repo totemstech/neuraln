@@ -94,12 +94,11 @@ Add a training data point with `input` and `output` being arrays of numbers.
 first and last layers
 
 ```javascript
-network.train(options, callback);
+network.train([options, ]callback);
 ```
 
 Train the network with the training set until the `target_error` or the
-`max_iterations` has been reached. These two parameters are optional and
-default to:
+`max_iterations` has been reached. The `options` are optional parameters:
 - `target_error: 0.01`
 - `iterations: 20000`
 - `multithread` is a boolean, which defaults to `false`.

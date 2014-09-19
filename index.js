@@ -36,6 +36,11 @@ module.exports = function(layers, momentum, learning_rate, bias) {
       return network.train_set_add(input, output);
     },
     train: function(options, callback) {
+      if(typeof options === 'function') {
+        callback = options;
+        options = {};
+      }
+
       var target_error = 0.01;
       var iterations = 20000;
       var step_size = 100;
