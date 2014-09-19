@@ -123,7 +123,7 @@ public:
   //
   // ### get_state
   //
-  std::string get_state();
+  std::string get_state(bool);
 
   //
   // ### set_log

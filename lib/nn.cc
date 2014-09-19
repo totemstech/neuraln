@@ -561,7 +561,7 @@ std::string NN::to_string()
 //
 // ### get_state
 //
-std::string NN::get_state()
+std::string NN::get_state(bool compact = false)
 {
   ostringstream oss;
 
@@ -571,9 +571,27 @@ std::string NN::get_state()
     oss << " " << layers_[i];
   }
 
+  if(compact)
+    oss << " " << "compact";
+  else
+    oss << " " << "full";
+
   for(int l = 0; l < L_; l++) {
     for(int i = 0; i < layers_[l]; i++) {
-      oss << " " << val_[l][i];
+      if(l > 0) {
+        for(int j = 0; j < layers_[l-1]; j++) {
+          double s = W_[l][i][j] * val_[l-1][j];
+          if(!compact) {
+            oss << " " << s;
+          }
+          else if(s != 0.0) {
+            oss << " " << l
+                << " " << i
+                << " " << j
+                << " " << s;
+          }
+        }
+      }
     }
   }
 
@@ -700,8 +718,13 @@ Handle<Value> NN::GetState(const Arguments& args) {
   /* unwraping */
   NN* nn = ObjectWrap::Unwrap<NN>(args.This());
 
+  bool compact = false;
+  if(args[0]->IsBoolean()) {
+    compact = args[0]->ToBoolean()->Value();
+  }
+
   /* return values */
-  v8::Handle<v8::String> result = v8::String::New(nn->get_state().c_str());
+  v8::Handle<v8::String> result = v8::String::New(nn->get_state(compact).c_str());
 
   return scope.Close(result);
 }

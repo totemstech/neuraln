@@ -86,12 +86,39 @@ module.exports.state_to_json = function(string) {
     test_value(isNaN, json.layers[i]);
   }
 
+  var type = values.shift();
+  test_value(function(v) { return (typeof v !== 'string' ||
+                                   !(v === 'full' || v === 'compact')) }, type);
+
   json.values = [];
-  for(var l = 0; l < nr_layers; l++) {
-    json.values[l] = json.values[l] || [];
-    for(var i = 0; i < json.layers[l]; i++) {
-      json.values[l][i] = parseFloat(values.shift());
-      test_value(isNaN, json.values[l][i]);
+  if(type === 'full') {
+    for(var l = 0; l < nr_layers; l++) {
+      for(var i = 0; i < json.layers[l]; i++) {
+        if(l > 0) {
+          json.values[l] = json.values[l] || [];
+          json.values[l][i] = json.values[l][i] || [];
+          for(var j = 0; j < json.layers[l-1]; j++) {
+            json.values[l][i][j] = parseFloat(values.shift());
+            test_value(isNaN, json.values[l][i][j]);
+          }
+        }
+      }
+    }
+  }
+  else {
+    while(values.length > 0) {
+      var l = parseInt(values.shift());
+      test_value(isNaN, l);
+      var i = parseInt(values.shift());
+      test_value(isNaN, i);
+      var j = parseInt(values.shift());
+      test_value(isNaN, j);
+      var value = parseFloat(values.shift());
+      test_value(isNaN, value);
+
+      json.values[l] = json.values[l] || [];
+      json.values[l][i] = json.values[l][i] || [];
+      json.values[l][i][j] = value;
     }
   }
 
