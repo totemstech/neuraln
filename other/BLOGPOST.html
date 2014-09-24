@@ -1,6 +1,10 @@
+---
+Practical Gender Classification based on Hashtags using NodeJS
+---
+
 The goal of this article is to provide a very practical guide to deploying a machine learning solution at scale. Not everything is proven right or optimal, and as with any real-life deployment, we made some trade-off and took some shortcuts on the go without necessarily building all the evidence that would have been required otherwise in an academic setting. We apologize for that (and will try to clearly point out throughout the post the places where we did so) and hope that it will be helpful to you nonetheless.
 
-Let's start with a little bit of context: TOTEMS Analytics provides analytics on Instagram (audiences and communities around hashtags). Over the past year, we noticed an ever increasing need of our clients for demographics information on their Instagram audience which led us to decide 6 months ago to invest time to built a gender classifier based on social signals we could find on the platform (Instagram does not disclose demographics information of their users on their API). We invested 2 months of man.work and came up with a rather simple neural-network approach that enables us provide to our clients unique information that they can't find anywhere else. So we figured we'd share how we did it, so that you can also leverage simple machine learning techniques to enhance and differentiate your customers/users experiences.
+Let's start with a little bit of context: TOTEMS Analytics provides analytics on Instagram (audiences and communities around hashtags). Over the past year, we noticed an ever increasing need of our clients for demographics information on their Instagram audience which led us to decide 6 months ago to invest time to build a gender classifier based on social signals we could find on the platform (Instagram does not disclose demographics information of their users on their API). We invested 2 months of man.work and came up with a rather simple neural-network approach that enables us to provide to our clients unique information that they can't find anywhere else. So we figured we'd share how we did it, so that you can also leverage simple machine learning techniques to enhance and differentiate your customers/users experiences.
 
 Here is the final feature as implemented in our analytics product and available for any account audience we track:
 
@@ -16,7 +20,7 @@ Our platform retrieves or refreshes around 400 user profiles per seconds (4 high
 
 <strong>The training set</strong>
 
-This is probably the most crucial part of the overall exercise. If you're building a classifier, this is probably since you're lacking the data you want to infer. Yet, you'll need a fairly big data set properly classified to use as a training set. In our case, we needed to find the gender of a large population of Instagram account. We knew that this gender information was readily available on other platforms, in particular Facebook[1] where most users have their gender information available publicly. We therefore looked for Instagram profiles including links to a facebook URL, and guess what, we found out that there were plenty!
+This is probably the most crucial part of the overall exercise. If you're building a classifier, this is probably since you're lacking the data you want to infer. Yet, you'll need a fairly big data set properly classified to use as a training set. In our case, we needed to find the gender of a large population of Instagram accounts. We knew that this gender information was readily available on other platforms, in particular Facebook[1] where most users have their gender information available publicly. We therefore looked for Instagram profiles including links to a facebook URL, and guess what, we found out that there were plenty!
 
 We built a few simple regular expressions to rule out anything that was not a proper Facebook profile URL and went over all the user ids we ever came across... and went even a little bit further by looking at their followers when relevant. Quite rapidly we had inspected a few hundred millions users on Instagram (probably most of the user base at that time) and extracted the Instagram username to Facebook profile relationships for them whenever relevant. Next step was to retrieve the gender information on Facebook when available (which was more painful as we have much less token there than we have on Instagram). We stopped at 570k. We had our training set.
 
@@ -24,8 +28,8 @@ We built a few simple regular expressions to rule out anything that was not a pr
 
 Before building our neural network, we needed to get a better understanding of which input signal to use. We found in the literature a couple approaches that could suit our goal here:
 <ul>
-<li>full-words from the user's posts description and/or her bio and full-name</li>
-<li>n-grams from the user's posts description and/or her bio and full-name</li>
+<li>full-words from the user's posts caption and/or her bio and full-name</li>
+<li>n-grams from the user's posts caption and/or her bio and full-name</li>
 </ul>
 The main problem here, is that the input signal space is vast (set of all n-grams, or set of all words), and it is hard to design coherent fixed-sized input vectors, as expected by most classifier, that work on all profiles.
 
@@ -33,7 +37,7 @@ An interesting solution to that problem, is to rely on mutual information to ord
 
 <script src="https://gist.github.com/spolu/c0c91eb51270ff8a8087.js"></script>
 
-We extracted the hashtags, full-words and n-grams used in recent posts' description from all the user we had in our training set and run the computation described above on them.
+We extracted the hashtags, full-words and n-grams used in recent posts' caption from all the user we had in our training set and run the computation described above on them.
 
 Out of curiosity, we ordered the hashtags by conditional probability of being a female given the use of the hashtag. These are the hashtags most strongly associated with female users:
 
@@ -47,9 +51,9 @@ And finally, we generated the top 10k hashtags most mutually dependent with gend
 
 <script src="https://gist.github.com/spolu/cc312a932f6232b5fca8.js"></script>
 
-Using this list, we were then able to generate fixed-sized binary input vectors of arbitrary size (1k, 2k, 4k, 10k), representing the use or not of these most mutually dependent hashtags in the recent posts's descriptions of a user. We did the same with n-grams and full-words and left the evaluation of which input signal would be more efficient to later on after building our neural-network.
+Using this list, we were then able to generate fixed-sized binary input vectors of arbitrary size (1k, 2k, 4k, 10k), representing the use or not of these most mutually dependent hashtags in the recent posts's captions of a user. We did the same with n-grams and full-words and left the evaluation of which input signal would be more efficient to later on after building our neural-network.
 
-Intuitively, we may feel like using the conditional probability to be male or female may be more efficient than mutual information (these lists are certainly more expressive), but the mutual information takes into account the probability of finding the feature (see how top mutually dependent terms are more probable than conditional ones, their count is way higher). In other words, it's more efficient for a classifier to have a less strongly associated but much more probable term rather than very strongly associated but highly improbable terms. The later will simply be useless for most of the users to classify.
+Intuitively, we may feel like using the conditional probability to be male or female may be more efficient than mutual information (these lists are certainly more expressive), but the mutual information takes into account the probability of finding the feature (see how top mutually dependent terms are more probable than conditional ones, their count is way higher). In other words, it's more efficient for a classifier to have a less strongly associated but much more probable term rather than very strongly associated but highly improbable terms. The latter will simply be useless for most of the users to classify.
 
 <strong>Building a neural network using nodeJS</strong>
 
@@ -61,7 +65,7 @@ A neural network, is therefore defined by its layer structure, `layers_[l]` (num
 
 <script src="https://gist.github.com/spolu/5e6eeeca0acdd70794f1.js"></script>
 
-Additionally, each node within the network is defined by its activation function. This function defines what a nodes output to the next layer given the sum of the inputs it received from the previous layer. It applies to all layers except the input layer whose value is set by the input vector. In our implementation we use the following code for our nodes' activation function:
+Additionally, each node within the network is defined by its activation function. This function defines what a node outputs to the next layer given the sum of the inputs it received from the previous layer. It applies to all layers except the input layer whose value is set by the input vector. In our implementation we use the following code for our nodes' activation function:
 
 <script src="https://gist.github.com/spolu/a83d8bff58ddcd4045fa.js"></script>
 
@@ -77,7 +81,7 @@ Using backpropagation, we can repeatedly iterate on the elements of the training
 
 Once we had a functioning neural-network and training algorithm, the next step was to test the different network structures and input signals to pick the most promising one. Here are the initial results we got:
 <ul>
-<li>`Type` is the input type (n-grams, words or hashtags) taken over the user's recent posts descriptions (early results had shown that using the bio and full-name was not yielding better results, contradictory to results in [2])</li>
+<li>`Type` is the input type (n-grams, words or hashtags) taken over the user's recent posts captions (early results had shown that using the bio and full-name was not yielding better results, contradictory to results in [2])</li>
 <li>`L1,L2,L3` is the network structure, that is, the size of each layer. We restricted ourselves to 2 and 3 layers networks. `L1` also defines the size of the input vector, computed as described before using the features with the best mutual information.</li>
 <li>`Cov` is an indicative value equal to the average number of features found on each elements of the training set (number of matching words/n-gram/hashtag on average)</li>
 <li>`Err` is the target error rate for training. (Setting an exceedingly low value can cause the network to overfit, that is, become too specific to the training set)</li>
@@ -110,7 +114,7 @@ You can see the result of this visualisation below (click to enlarge). We only d
 
 We were surprised by the simplicity of the resulting structure, but aware that lower weight links not displayed here might play a significant role, especially since it seems that a certain number of inner-layer nodes without any ingressing link in the visualization do have a significant output link.
 
-The other surprising aspect, is the similarity of the two network. They both have a mainly positive component feeding an inner-layer node with a positive impact on the result. And a mixed positive/negative component feeding an inner-layer node with a negative impact on the result. The former component seemingly playing the role of an enabler, and the later component seemingly playing the role of an inhibitor.
+The other surprising aspect, is the similarity of the two networks. They both have a mainly positive component feeding an inner-layer node with a positive impact on the result. And a mixed positive/negative component feeding an inner-layer node with a negative impact on the result. The former component seemingly playing the role of an enabler, and the latter component seemingly playing the role of an inhibitor.
 
 <strong>Conclusion</strong>
 
