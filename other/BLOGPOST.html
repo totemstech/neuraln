@@ -1,8 +1,9 @@
 ---
-Practical Gender Classification based on Hashtags using NodeJS
+Practical Gender Classification based on Hashtags using NodeJS <!--maybe best to focus clickability by removing "hashtags", adding at scale and leaving just NodeJS? (GH)-->
 ---
+<!-- Throughout the post, I'd rather frame this as "gender classification at scale using NodeJS: a pratcial approach" with Instagram/hashtags as one example. Seems more HN...-->
 
-The goal of this article is to provide a very practical guide to deploying a machine learning solution at scale. Not everything is proven right or optimal, and as with any real-life deployment, we made some trade-off and took some shortcuts on the go without necessarily building all the evidence that would have been required otherwise in an academic setting. We apologize for that (and will try to clearly point out throughout the post the places where we did so) and hope that it will be helpful to you nonetheless.
+The goal of this article is to provide a very practical guide to deploying a machine learning solution at scale. Not everything is proven right or optimal, and as with any real-life deployment, we made some trade-offs and took some shortcuts on the go without necessarily building all the evidence that would have been required in an academic setting. We apologize for that, will try to clearly point out throughout the post the places where we did so and hope that it will be helpful to you nonetheless.
 
 Let's start with a little bit of context: TOTEMS Analytics provides analytics on Instagram (audiences and communities around hashtags). Over the past year, we noticed an ever increasing need of our clients for demographics information on their Instagram audience which led us to decide 6 months ago to invest time to build a gender classifier based on social signals we could find on the platform (Instagram does not disclose demographics information of their users on their API). We invested 2 months of man.work and came up with a rather simple neural-network approach that enables us to provide to our clients unique information that they can't find anywhere else. So we figured we'd share how we did it, so that you can also leverage simple machine learning techniques to enhance and differentiate your customers/users experiences.
 
@@ -10,9 +11,9 @@ Here is the final feature as implemented in our analytics product and available 
 
 &lt;insert screenshot product&gt;
 
-<strong>The prerequisites</strong>
+<strong>The constraints we had</strong> <!-- prerequisites sounds more like "what you should know before reading this" -->
 
-Our platform retrieves or refreshes around 400 user profiles per seconds (4 high-bandwidth servers co-located with instagram's API servers on AWS are in charge of that). These profiles are stored in a sharded MySQL table and used to compute aggregated information about audiences (follower/followee relationships) or communities (use of a particular hashtag). This context led us to set the following prerequisites for the gender classifier we wanted to build:
+Our platform retrieves or refreshes around 400 user profiles per second (this is managed using 4 high-bandwidth servers co-located with instagram's API servers on AWS). These profiles are stored in a sharded MySQL table and used to compute aggregated information about audiences (follower/followee relationships) or communities (contributors to a particular hashtag). This context led us to set the following prerequisites for the gender classifier we wanted to build:
 <ul>
 <li><em>Real-time classification:</em>  We already knew the load we would have and it was important for the classifier to not drastically increase the amount of machines needed to process these profiles.</li>
 <li><em>&gt;0.9 success rate:</em> This was our initial target. That number is quite arbitrary, but we figured the aggregated data computed based on a classifier with this kind of success rate would be good enough for all of our clients, and a good first milestone.</li>
@@ -20,26 +21,26 @@ Our platform retrieves or refreshes around 400 user profiles per seconds (4 high
 
 <strong>The training set</strong>
 
-This is probably the most crucial part of the overall exercise. If you're building a classifier, this is probably since you're lacking the data you want to infer. Yet, you'll need a fairly big data set properly classified to use as a training set. In our case, we needed to find the gender of a large population of Instagram accounts. We knew that this gender information was readily available on other platforms, in particular Facebook[1] where most users have their gender information available publicly. We therefore looked for Instagram profiles including links to a facebook URL, and guess what, we found out that there were plenty!
+This is probably the most crucial part of the overall exercise. If you're building a classifier, it is likely because you're lacking the data you want to infer in the first place. Yet, you'll need a fairly big data set properly classified to use as a training set. In our case, we needed to find the gender of a large population of Instagram accounts. We knew that this gender information was readily available on other platforms, in particular Facebook[1] where most users provide their gender publicly. Focusing on Instagram profiles that included links to a facebook URL in their profile (of which there are many) was the way forward.
 
-We built a few simple regular expressions to rule out anything that was not a proper Facebook profile URL and went over all the user ids we ever came across... and went even a little bit further by looking at their followers when relevant. Quite rapidly we had inspected a few hundred millions users on Instagram (probably most of the user base at that time) and extracted the Instagram username to Facebook profile relationships for them whenever relevant. Next step was to retrieve the gender information on Facebook when available (which was more painful as we have much less token there than we have on Instagram). We stopped at 570k. We had our training set.
+We built a few simple regular expressions to rule out anything that was not a proper Facebook profile URL and went over all the user ids we ever came across... and went even a little bit further by looking at their followers when relevant. Upon inspection of several hundred million Instagram users (most of the user base at that time), we were able to extract the Instagram username to Facebook profile relationships whenever relevant. The next step was to retrieve gender information on Facebook when available. With 570k profiles, we had our training set.
 
 <strong>Extracting the proper input signals</strong>
 
-Before building our neural network, we needed to get a better understanding of which input signal to use. We found in the literature a couple approaches that could suit our goal here:
+Before building our neural network, we needed to get a better understanding of which input signal to use. Several approaches could have suited our goal here:
 <ul>
-<li>full-words from the user's posts caption and/or her bio and full-name</li>
-<li>n-grams from the user's posts caption and/or her bio and full-name</li>
+<li>full-words from a user's posts caption and/or their bio and full-name</li>
+<li>n-grams from a user's posts caption and/or their bio and full-name</li>
 </ul>
-The main problem here, is that the input signal space is vast (set of all n-grams, or set of all words), and it is hard to design coherent fixed-sized input vectors, as expected by most classifier, that work on all profiles.
+The main problem here is that the input signal space is vast (set of all n-grams, or set of all words), and it is hard to design coherent fixed-sized input vectors (expected by most classifiers) that work on all profiles.
 
-An interesting solution to that problem, is to rely on mutual information to order the input space[2] and select the top N n-grams or full-words that have the greatest mutual-information[3] with the gender random variable. Intuitively, the mutual information between two random variables measures how much knowing one of these variables reduces uncertainty about the other. Here's how we computed the mutual information in our case:
+An interesting solution to that problem is to rely on mutual information to order the input space[2], and select the top N n-grams or full-words that have the greatest mutual-information[3] with the gender random variable. Intuitively, the mutual information between two random variables measures how much knowing one of these variables reduces uncertainty about the other. Here's how we computed the mutual information in our case:
 
 <script src="https://gist.github.com/spolu/c0c91eb51270ff8a8087.js"></script>
 
-We extracted the hashtags, full-words and n-grams used in recent posts' caption from all the user we had in our training set and run the computation described above on them.
+We extracted the hashtags, full-words and n-grams used in the captions of recent posts from the users we had in our training set and ran the computation described above.
 
-Out of curiosity, we ordered the hashtags by conditional probability of being a female given the use of the hashtag. These are the hashtags most strongly associated with female users:
+Out of curiosity, we ordered hashtags by the conditional probability of being classified as female given the use of a given hashtag. These are the hashtags most strongly associated with female users:
 
 <script src="https://gist.github.com/spolu/b120266bb4ecbc95b406.js"></script>
 
@@ -51,17 +52,17 @@ And finally, we generated the top 10k hashtags most mutually dependent with gend
 
 <script src="https://gist.github.com/spolu/cc312a932f6232b5fca8.js"></script>
 
-Using this list, we were then able to generate fixed-sized binary input vectors of arbitrary size (1k, 2k, 4k, 10k), representing the use or not of these most mutually dependent hashtags in the recent posts's captions of a user. We did the same with n-grams and full-words and left the evaluation of which input signal would be more efficient to later on after building our neural-network.
+Using this list, we were then able to generate fixed-sized binary input vectors of arbitrary size (1k, 2k, 4k, 10k), representing the presence - or absence - of these most mutually dependent hashtags in the recent posts' captions of a user. We repeated this operation with n-grams and full words and left the evaluation of which input signal would be more efficient to after having built our neural network.
 
-Intuitively, we may feel like using the conditional probability to be male or female may be more efficient than mutual information (these lists are certainly more expressive), but the mutual information takes into account the probability of finding the feature (see how top mutually dependent terms are more probable than conditional ones, their count is way higher). In other words, it's more efficient for a classifier to have a less strongly associated but much more probable term rather than very strongly associated but highly improbable terms. The latter will simply be useless for most of the users to classify.
+Intuitively, the conditional probability of being male or female could be seen as a more efficient marker than than mutual information (these lists are certainly more expressive), but mutual information takes into account the probability of finding the feature (see how top mutually dependent terms are more probable than conditional ones, their count is much higher). In other words, it's more efficient for a classifier to have a less strongly associated but much more probable term rather than very strongly associated but highly improbable terms. The latter will simply be useless for most of the users to be classified.
 
 <strong>Building a neural network using nodeJS</strong>
 
 We implemented our own neural network based on popular references[4][5] using nodeJS. We started with small training sets and increased progressively their size until we hit the limitations of Javascript's garbage collector (stopping the world too frequently) and rewrote it in C++ as a NodeJS native add-on (available here: <a href="https://github.com/totemstech/neuraln">https://github.com/totemstech/neuraln</a>)
 
-Intuitively, a neural network is a graph composed of layers. The first layer, is set to the input vector value that needs to be classified. In our case, the presence or not of the top N most mutually dependent hashtags or n-grams in the users' recent posts. Each layer are linked to the other by weights values. Any node in a layer is linked to all the nodes in the next layer. There can be any number of layers between the input layer and the output layer, these are called inner-layers. Finally the outer layer represents the output vector whose dimension depends on value that needs to be inferred.
+A neural network is a graph composed of layers. The first layer is set to the input vector value that needs to be classified. In our case, the presence or not of the top N most mutually dependent hashtags or n-grams in a user's recent posts. Each layer is linked to the other by weight values. Any node in a layer is linked to all the nodes in the next layer. There can be any number of layers between the input layer and the output layer, these are called inner-layers. Finally the outer layer represents the output vector whose dimension depends on value that needs to be inferred.
 
-A neural network, is therefore defined by its layer structure, `layers_[l]` (number of node in each layer); and the weights value between each layer , `W_[l][i][j]`. Omitting other members, this is exactly how our neural networks are defined:
+A neural network, is therefore defined by its layer structure, `layers_[l]` (number of node in each layer); and the weights value between each layer , `W_[l][i][j]`. Omitting other members, this is exactly how our neural networks are defined: <!-- plural or singular for network here? -->
 
 <script src="https://gist.github.com/spolu/5e6eeeca0acdd70794f1.js"></script>
 
@@ -71,7 +72,7 @@ Additionally, each node within the network is defined by its activation function
 
 Now that we have the proper data structure to represent our neural network, we need to be able to train it. The network we described is a feed-forward network: values are propagated from the input vector layer to the output layer, along the weights, using at each node its activation function to feed the next layer. Training of such networks relies on backpropagation[6].
 
-Backpropagation in itself could deserve a whole blogpost[7] and is very well described in textbooks[4], so we refer to them if you want to understand the internals of it. What's important to remember is that backpropagation lets you update the weights of the neural-network by propagating the error (difference between the outputed value and the expected value from the training set) along the gradient of the network. Computing that gradient, by the way, requires your activation function to be differentiable. Backpropagation was invented in 1970 but only popularized in 1986, enabling a much broader use of neural-networks. It is since then the go-to solution to train neural-networks.
+Backpropagation alone deserves a whole blogpost[7] and is very well described in textbooks[4], so we suggest you refer to them if you want to understand the internals of it. What's important to remember is that backpropagation lets you update the weights of the neural network by propagating the error (difference between the outputed value and the expected value from the training set) along the gradient of the network. Computing that gradient, by the way, requires your activation function to be differentiable. Backpropagation was invented in 1970 but only popularized in 1986, enabling a much broader use of neural networks. It has since then become the go-to solution to train neural networks.
 
 Using backpropagation, we can repeatedly iterate on the elements of the training set and reduce the error rate until it reaches the desired value. In our implementation, we compute the sum of the quadratic errors between the computed output `res` and the expected one `train[i]` and average it over the entire training set, and repeat that computation until it reaches the target value `error` passed as argument:
 
@@ -79,34 +80,34 @@ Using backpropagation, we can repeatedly iterate on the elements of the training
 
 <strong>Choosing the best input signal</strong>
 
-Once we had a functioning neural-network and training algorithm, the next step was to test the different network structures and input signals to pick the most promising one. Here are the initial results we got:
+Once we had a functioning neural network and training algorithm, the next step was to test the different network structures and input signals to pick the most promising one. Here are the initial results we got:
 <ul>
 <li>`Type` is the input type (n-grams, words or hashtags) taken over the user's recent posts captions (early results had shown that using the bio and full-name was not yielding better results, contradictory to results in [2])</li>
-<li>`L1,L2,L3` is the network structure, that is, the size of each layer. We restricted ourselves to 2 and 3 layers networks. `L1` also defines the size of the input vector, computed as described before using the features with the best mutual information.</li>
+<li>`L1,L2,L3` is the network structure, that is, the size of each layer. We restricted ourselves to 2- and 3-layer networks. `L1` also defines the size of the input vector, computed as described before using the features with the best mutual information.</li>
 <li>`Cov` is an indicative value equal to the average number of features found on each elements of the training set (number of matching words/n-gram/hashtag on average)</li>
 <li>`Err` is the target error rate for training. (Setting an exceedingly low value can cause the network to overfit, that is, become too specific to the training set)</li>
 <li>`Train` is the size of the training set</li>
 <li>`It` is the number of iterations over the training set needed to reach the target error rate</li>
-<li>`Res` is the success rate on the test set (generally 10% the size of the training set). It's important to remember that the baseline is 0.5 not 0. A random function would perform at 0.5 for gender classification.</li>
+<li>`Res` is the success rate on the test set (generally 10% the size of the training set). It's important to remember that the baseline is 0.5 not 0. A random function would be expected to perform at 0.5 for gender classification over a random set of individuals.</li>
 </ul>
 
 <script src="https://gist.github.com/spolu/7b08e7f5e6437b05a51f.js"></script>
 
-This is worth noting here that networks without inner-layer (called perceptron), are linear classifiers. Their prediction is based on a simple linear combination of the input features. We were quite surprised by the efficiency of these networks given the simplicity of the model they encode.
+It is worth noting here that networks without an inner layer (called perceptron), are linear classifiers. Their prediction is based on a simple linear combination of the input features. We were quite surprised by the efficiency of these networks given the simplicity of the model they encode.
 
 Best results were obtained with networks with one hidden layer, and these results hinted us to the fact that using a large (10k) hashtag-based input vector would potentially yield the best results. Especially if we were able to use a larger training set.
 
 <strong>Tweaking and Results</strong>
 
-We were able to train a few networks using a 200k elements training set. But the process became quite painful as training on such large data sets would take up to 5h on the servers we had available. Using a 200k training set, we were only able to increase the success rate to 0.83.
+We were able to train a few networks using a 200k-element training set. The process became quite painful, as training on such large data sets would take up to 5h on the servers we had available. Using a 200k-element training set, we were able to increase the success rate to 0.83.
 
-Finally, inspired by boosting[8], we experimented with training a male network and a female network using two distinct training set of 200k, and use both network to classify, picking whichever network had the strongest response to the given input. This is a purely operational solution that does not root into anything else than the non-extensive experimental approach we described here. But that's what worked best for us. Using this technique we were able to reach the success rate of 0.88 on the 70k elements test set, close enough to our initial target to be satisfied.
+Finally, inspired by boosting[8], we experimented with training a male network and a female network using two distinct training sets of 200k elements each, and using both networks to classify, picking whichever network had the strongest response to the given input. This is a purely operational solution that does not root into anything else than the non-extensive experimental approach we described here. But it iss what worked best for us. Using this technique we were able to reach a success rate of 0.88 on the 70k-element test set, close enough to our initial target.
 
-We added serialization (`to_string`) and deserialization (constructor) functions to our library and integrated the resulting classifier to our product. The nice property of feed-forward neural-networks is that classification is really fast once the network is loaded in memory. Integrating the classifier to our infrastructure had no visible impact on the load of our aggregation servers.
+We added serialization (`to_string`) and deserialization (constructor) functions to our library and built the resulting classifier into our product. The nice property of feed-forward neural networks is that classification is really fast once the network is loaded in memory. Adding the classifier to our infrastructure had no visible impact on the load of our aggregation servers.
 
-<strong>Analysis of the resulting Neural-Networks</strong>
+<strong>Analysis of the resulting Neural Networks</strong>
 
-In preparation to this post, we added a few scripts to generate SVG representation of the neural network serialized format in order to visualize the structure of the network. We run these scripts on the networks (male and female) we have been using for the past couple months in production.
+To prepare this post, we added a few scripts to generate SVG representations of the neural network serialized format in order to visualize the structure of the network. We ran these scripts on the networks (male and female) we have been using for the past few months in production.
 
 You can see the result of this visualisation below (click to enlarge). We only display "heavy" links, that is links with an absolute weight above 0.8. Positive weights are in blue, negative weights are in red. The heavier the link is, the more colored it is (semi-transparent links are close to 0.8 while others have a higher absolute weight).
 
