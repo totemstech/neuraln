@@ -1,17 +1,18 @@
 ---
-Practical Gender Classification based on Hashtags using NodeJS <!--maybe best to focus clickability by removing "hashtags", adding at scale and leaving just NodeJS? (GH)-->
+Using Machine Learning and NodeJS to detect the gender of Instagram Users
 ---
-<!-- Throughout the post, I'd rather frame this as "gender classification at scale using NodeJS: a pratcial approach" with Instagram/hashtags as one example. Seems more HN...-->
 
-The goal of this article is to provide a very practical guide to deploying a machine learning solution at scale. Not everything is proven right or optimal, and as with any real-life deployment, we made some trade-offs and took some shortcuts on the go without necessarily building all the evidence that would have been required in an academic setting. We apologize for that, will try to clearly point out throughout the post the places where we did so and hope that it will be helpful to you nonetheless.
+The goal of this article is to provide a very practical guide to deploying a machine learning solution at scale. Not everything is proven right or optimal, and as with any real-life deployment, we made some trade-offs and took some shortcuts on the go without necessarily building all the evidence that would have been required in an academic setting. We apologize for that, and we will try to clearly point out throughout the post the places where we did so and hope that it will be helpful to you nonetheless.
 
 Let's start with a little bit of context: TOTEMS Analytics provides analytics on Instagram (audiences and communities around hashtags). Over the past year, we noticed an ever increasing need of our clients for demographics information on their Instagram audience which led us to decide 6 months ago to invest time to build a gender classifier based on social signals we could find on the platform (Instagram does not disclose demographics information of their users on their API). We invested 2 months of man.work and came up with a rather simple neural-network approach that enables us to provide to our clients unique information that they can't find anywhere else. So we figured we'd share how we did it, so that you can also leverage simple machine learning techniques to enhance and differentiate your customers/users experiences.
 
-Here is the final feature as implemented in our analytics product and available for any account audience we track:
+To give you a more explicit idea of what we came up with, we've embedded the resulting classifier in a simple demo available right from this post. Try it out now! It should work with most Instagram users (provided they're public and active):
+<center>
+  <iframe style="border: 0px; width: 600px; height: 150px" src="http://connect.totems.co:3007"></iframe>
+</center>
+<br>
 
-&lt;insert screenshot product&gt;
-
-<strong>The constraints we had</strong> <!-- prerequisites sounds more like "what you should know before reading this" -->
+<strong>The constraints we had</strong>
 
 Our platform retrieves or refreshes around 400 user profiles per second (this is managed using 4 high-bandwidth servers co-located with instagram's API servers on AWS). These profiles are stored in a sharded MySQL table and used to compute aggregated information about audiences (follower/followee relationships) or communities (contributors to a particular hashtag). This context led us to set the following prerequisites for the gender classifier we wanted to build:
 <ul>
@@ -62,7 +63,7 @@ We implemented our own neural network based on popular references[4][5] using no
 
 A neural network is a graph composed of layers. The first layer is set to the input vector value that needs to be classified. In our case, the presence or not of the top N most mutually dependent hashtags or n-grams in a user's recent posts. Each layer is linked to the other by weight values. Any node in a layer is linked to all the nodes in the next layer. There can be any number of layers between the input layer and the output layer, these are called inner-layers. Finally the outer layer represents the output vector whose dimension depends on value that needs to be inferred.
 
-A neural network, is therefore defined by its layer structure, `layers_[l]` (number of node in each layer); and the weights value between each layer , `W_[l][i][j]`. Omitting other members, this is exactly how our neural networks are defined: <!-- plural or singular for network here? -->
+A neural network, is therefore defined by its layer structure, `layers_[l]` (number of node in each layer); and the weights value between each layer , `W_[l][i][j]`. Omitting other members, this is exactly how our neural network is defined: 
 
 <script src="https://gist.github.com/spolu/5e6eeeca0acdd70794f1.js"></script>
 
@@ -119,7 +120,7 @@ The other surprising aspect, is the similarity of the two networks. They both ha
 
 <strong>Conclusion</strong>
 
-We hope that this description of our experience deploying a machine learning solution in production will serve as a useful practical example to illustrate the numerous theoretical resources available online as well as in textbooks. The code we used to build and train our neural network, currently used in production at TOTEMS has been open-sourced on our company GitHub account: <a href="https://github.com/totemstech/neuraln">https://github.com/totemstech/neuraln</a>. We hope it can serve in other production settings where pure Javascript network implementation may lack the speed of a C++ implementation.
+We hope that this description of our experience deploying a machine learning solution in production will serve as a useful practical example to illustrate the numerous theoretical resources available online as well as in textbooks. The code we used to build and train our neural network, currently used in production at TOTEMS has been open-sourced on our company GitHub account: <a href="https://github.com/totemstech/neuraln">https://github.com/totemstech/neuraln</a>. We hope it can serve in other production settings where a pure Javascript network implementation may lack the speed of a C++ implementation.
 
 -stan
 
