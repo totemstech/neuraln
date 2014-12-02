@@ -52,7 +52,7 @@ module.exports = function(layers, momentum, learning_rate, bias) {
         iterations = options.iterations;
       if(typeof options.step_size === 'number')
         step_size = options.step_size;
-      if(typeof threads === 'number')
+      if(typeof options.threads === 'number')
         threads = options.threads;
 
       if(options.multithread) {
