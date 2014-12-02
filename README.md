@@ -65,7 +65,7 @@ var result = network.run([ (Math.random() * 2) - 1 ]);
 var string = network.to_string();
 
 /* Retrieve the network's state string */
-var state = netowrk.get_state();
+var state = network.get_state();
 ```
 
 ## Instantiation & Methods
