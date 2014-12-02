@@ -22,6 +22,7 @@
 #include "nn.hh"
 
 #include <sstream>
+#include <algorithm>
 
 using namespace v8;
 using namespace node;
@@ -449,7 +450,7 @@ void NN::mt_train(double error = 0.01,
         //cout << endl << "IT[" << it << "] Step " << step << endl;
         //cout << "Initializing children NNs... ";
         /* Copy and initialize children NN */
-        NN* nns[thread];
+        NN** nns = new NN*[thread];
         for(int i = 0; i < thread; i++) {
           nns[i] = new NN(*this);
           nns[i]->train_set_clear();
@@ -471,8 +472,8 @@ void NN::mt_train(double error = 0.01,
 
         /* Launch threads */
         //cout << "Launch threads... ";
-        uv_thread_t nns_ids[n_thread];
-        MT_NN::LearnWorker *workers[n_thread];
+        uv_thread_t* nns_ids = new uv_thread_t[n_thread];
+        MT_NN::LearnWorker** workers = new MT_NN::LearnWorker*[n_thread];
         for(int i = 0; i < n_thread; i++) {
           workers[i] = new MT_NN::LearnWorker();
           workers[i]->nn = nns[i];
@@ -1076,7 +1077,7 @@ int MT_NN::split_data(NN** nns, int no_nns, int step, int step_size,
                       vector< vector<double> > train_out)
 {
   unsigned int total = 0;
-  int max_to_insert = min((step + 1) * no_nns * step_size,
+  int max_to_insert = std::min((step + 1) * no_nns * step_size,
                           (int)train_in.size());
   int to_insert = 0;
 
