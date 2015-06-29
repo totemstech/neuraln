@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <uv.h>
+#include <node_object_wrap.h>
 
 using namespace v8;
 using namespace node;
@@ -35,7 +36,7 @@ using namespace std;
 //
 // ## NN Class
 //
-class NN : public ObjectWrap {
+class NN : public node::ObjectWrap {
 public:
   NN(vector<int> &, double, double, double);
   NN(std::string &);
@@ -134,20 +135,21 @@ public:
   /*                                BINDINGS                                */
   /**************************************************************************/
 
-  static void Init(Handle<Object> exports);
+  static void Init(Local<Object> exports);
 
 private:
   //
   // ### bindings
   //
-  static Handle<Value> New(const Arguments& args);
-  static Handle<Value> TrainSetAdd(const Arguments& args);
-  static Handle<Value> Train(const Arguments& args);
-  static Handle<Value> MTTrain(const Arguments& args);
-  static Handle<Value> Run(const Arguments& args);
-  static Handle<Value> ToString(const Arguments& args);
-  static Handle<Value> GetState(const Arguments& args);
-  static Handle<Value> SetLog(const Arguments& args);
+  static void New(const FunctionCallbackInfo<Value>& args);
+  static void TrainSetAdd(const FunctionCallbackInfo<Value>& args);
+  static void Train(const FunctionCallbackInfo<Value>& args);
+  static void MTTrain(const FunctionCallbackInfo<Value>& args);
+  static void Run(const FunctionCallbackInfo<Value>& args);
+  static void ToString(const FunctionCallbackInfo<Value>& args);
+  static void GetState(const FunctionCallbackInfo<Value>& args);
+  static void SetLog(const FunctionCallbackInfo<Value>& args);
+  static Persistent<Function> constructor;
 
   //
   // ### Operators
@@ -204,7 +206,7 @@ namespace MT_NN {
   //
   struct TrainWorker {
     uv_work_t request;
-    Persistent<Function> cb;
+    Local<Function> cb;
     string error_message;
 
     double target_error;

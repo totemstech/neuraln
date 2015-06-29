@@ -23,11 +23,14 @@
 
 #include <sstream>
 #include <algorithm>
+#include <node_object_wrap.h>
+#include <node.h>
 
 using namespace v8;
 using namespace node;
 using namespace std;
 
+Persistent<Function> NN::constructor;
 
 /******************************************************************************/
 /*                             NN IMPLEMENTATION                              */
@@ -698,23 +701,23 @@ NN& NN::operator/=(int const& N) {
 //
 // ### ToString wrapper
 //
-Handle<Value> NN::ToString(const Arguments& args) {
-  HandleScope scope;
+void NN::ToString(const FunctionCallbackInfo<v8::Value>& args) {
+  Isolate* isolate = args.GetIsolate();
 
   /* unwraping */
   NN* nn = ObjectWrap::Unwrap<NN>(args.This());
 
   /* return values */
-  v8::Handle<v8::String> result = v8::String::New(nn->to_string().c_str());
+  Local<String> result = String::NewFromUtf8(isolate, nn->to_string().c_str());
 
-  return scope.Close(result);
+  args.GetReturnValue().Set(result);
 }
 
 //
 // ### GetState wrapper
 //
-Handle<Value> NN::GetState(const Arguments& args) {
-  HandleScope scope;
+void NN::GetState(const FunctionCallbackInfo<v8::Value>& args) {
+  Isolate* isolate = args.GetIsolate();
 
   /* unwraping */
   NN* nn = ObjectWrap::Unwrap<NN>(args.This());
@@ -725,58 +728,62 @@ Handle<Value> NN::GetState(const Arguments& args) {
   }
 
   /* return values */
-  v8::Handle<v8::String> result = v8::String::New(nn->get_state(compact).c_str());
+  Local<String> result = String::NewFromUtf8(isolate, nn->get_state(compact).c_str());
 
-  return scope.Close(result);
+  args.GetReturnValue().Set(result);
 }
 
 //
 // ### TrainSetAdd wrapper
 //
-Handle<Value> NN::TrainSetAdd(const Arguments& args) {
-  HandleScope scope;
+void NN::TrainSetAdd(const FunctionCallbackInfo<v8::Value>& args) {
+  Isolate* isolate = args.GetIsolate();
 
   /* unwraping */
   NN* nn = ObjectWrap::Unwrap<NN>(args.This());
 
   if(!args[0]->IsArray()) {
-    ThrowException(
+    isolate->ThrowException(
       Exception::TypeError(
-        String::New("Training `in` values expected as argument 0")));
-    return scope.Close(Undefined());
+        String::NewFromUtf8(isolate, "Training `in` values expected as argument 0")));
+
+    args.GetReturnValue().SetUndefined();
+
+    return;
   }
   if(!args[1]->IsArray()) {
-    ThrowException(
+    isolate->ThrowException(
       Exception::TypeError(
-        String::New("Training `out` values expected as argument 0")));
-    return scope.Close(Undefined());
+        String::NewFromUtf8(isolate, "Training `out` values expected as argument 0")));
+
+    args.GetReturnValue().SetUndefined();
+
+    return;
   }
 
   /* training set extraction */
-  Local<Array> in = Array::Cast(*args[0]);
-  Local<Array> out = Array::Cast(*args[1]);
+  Local<Array> in = Local<Array>::Cast(args[0]);
+  Local<Array> out = Local<Array>::Cast(args[1]);
 
   vector<double> input(in->Length());
   vector<double> output(out->Length());
 
   for(unsigned int i = 0; i < in->Length(); i ++) {
-    input[i] = in->Get(Integer::New(i))->ToNumber()->Value();
+    input[i] = in->Get(Integer::New(isolate, i))->ToNumber()->Value();
   }
   for(unsigned int i = 0; i < out->Length(); i ++) {
-    output[i] = out->Get(Integer::New(i))->ToNumber()->Value();
+    output[i] = out->Get(Integer::New(isolate, i))->ToNumber()->Value();
   }
 
   nn->train_set_add(input, output);
 
-  return scope.Close(Undefined());
+  args.GetReturnValue().SetUndefined();
 }
 
 //
 // ### Train wrapper
 //
-Handle<Value> NN::Train(const Arguments& args) {
-  HandleScope scope;
-
+void NN::Train(const FunctionCallbackInfo<v8::Value>& args) {
   /* unwraping */
   NN* nn = ObjectWrap::Unwrap<NN>(args.This());
 
@@ -786,21 +793,19 @@ Handle<Value> NN::Train(const Arguments& args) {
               (int)args[1]->ToNumber()->Value());
   }
   else if(args[0]->IsNumber()) {
-    nn->train(args[0]->ToNumber()->Value());
+    nn->train(args[0]->NumberValue());
   }
   else {
     nn->train();
   }
 
-  return scope.Close(Undefined());
+  args.GetReturnValue().SetUndefined();
 }
 
 //
 // ### Multithread Train Wrapper
 //
-Handle<Value> NN::MTTrain(const Arguments& args) {
-  HandleScope scope;
-
+void NN::MTTrain(const FunctionCallbackInfo<v8::Value>& args) {
   double target_error = 0;
   int iterations = 0;
   int step_size = 0;
@@ -810,28 +815,28 @@ Handle<Value> NN::MTTrain(const Arguments& args) {
 
   if(args[0]->IsNumber() && args[1]->IsNumber() &&
      args[2]->IsNumber() && args[3]->IsNumber()) {
-    target_error = args[0]->ToNumber()->Value();
-    iterations = (int)args[1]->ToNumber()->Value();
-    step_size = (int)args[2]->ToNumber()->Value();
-    threads = (int)args[3]->ToNumber()->Value();
+    target_error = args[0]->NumberValue();
+    iterations = (int)args[1]->NumberValue();
+    step_size = (int)args[2]->NumberValue();
+    threads = (int)args[3]->NumberValue();
 
     cb = Local<Function>::Cast(args[4]);
   }
   else if(args[0]->IsNumber() && args[1]->IsNumber() && args[2]->IsNumber()) {
-    target_error = args[0]->ToNumber()->Value();
-    iterations = (int)args[1]->ToNumber()->Value();
-    step_size = (int)args[2]->ToNumber()->Value();
+    target_error = args[0]->NumberValue();
+    iterations = (int)args[1]->NumberValue();
+    step_size = (int)args[2]->NumberValue();
 
     cb = Local<Function>::Cast(args[3]);
   }
   else if(args[0]->IsNumber() && args[1]->IsNumber()) {
-    target_error = args[0]->ToNumber()->Value();
-    iterations = (int)args[1]->ToNumber()->Value();
+    target_error = args[0]->NumberValue();
+    iterations = (int)args[1]->NumberValue();
 
     cb = Local<Function>::Cast(args[2]);
   }
   else if(args[0]->IsNumber()) {
-    target_error = args[0]->ToNumber()->Value();
+    target_error = args[0]->NumberValue();
 
     cb = Local<Function>::Cast(args[1]);
   }
@@ -844,7 +849,7 @@ Handle<Value> NN::MTTrain(const Arguments& args) {
   MT_NN::TrainWorker *worker = new MT_NN::TrainWorker();
 
   worker->request.data = worker;
-  worker->cb = Persistent<Function>::New(cb);
+  worker->cb = cb;
   worker->nn = nn;
 
   worker->target_error = target_error;
@@ -855,48 +860,52 @@ Handle<Value> NN::MTTrain(const Arguments& args) {
   uv_queue_work(uv_default_loop(), &worker->request,
                 MT_NN::train_start, MT_NN::train_done);
 
-  return scope.Close(Undefined());
+  args.GetReturnValue().SetUndefined();
 }
 
 
 //
 // ### Run wrapper
 //
-Handle<Value> NN::Run(const Arguments& args) {
-  HandleScope scope;
+void NN::Run(const FunctionCallbackInfo<v8::Value>& args) {
+  Isolate* isolate = args.GetIsolate();
 
   /* unwrapping */
   NN* nn = ObjectWrap::Unwrap<NN>(args.This());
 
   if(!args[0]->IsArray()) {
-    ThrowException(
-      Exception::TypeError(String::New("Input expected as argument 0")));
-    return scope.Close(Undefined());
+    isolate->ThrowException(
+      Exception::TypeError(String::NewFromUtf8(isolate, "Input expected as argument 0")));
+    args.GetReturnValue().SetUndefined();
+
+    return;
   }
 
-  Local<Array> l = Array::Cast(*args[0]);
+  Local<Array> l = Local<Array>::Cast(args[0]);
   vector<double> input(l->Length());
 
   for(unsigned int i = 0; i < l->Length(); i ++) {
-    input[i] = l->Get(Integer::New(i))->ToNumber()->Value();
+    input[i] = l->Get(Integer::New(isolate, i))->NumberValue();
   }
 
   /* call */
   vector<double> out = nn->run(input);
 
   /* return values */
-  v8::Handle<v8::Array> result = v8::Array::New(out.size());
-  for (size_t i = 0; i < out.size(); i++)
-    result->Set(Integer::New(i), Number::New(out[i]));
+  Local<Array> result = Array::New(isolate, out.size());
 
-  return scope.Close(result);
+  for (size_t i = 0; i < out.size(); i++)
+    result->Set(Integer::New(isolate, i), Number::New(isolate, out[i]));
+
+  args.GetReturnValue().Set(result);
 }
 
 //
 // ### New
 //
-Handle<Value> NN::New(const Arguments& args) {
-  HandleScope scope;
+void NN::New(const FunctionCallbackInfo<v8::Value>& args) {
+  Isolate* isolate = args.GetIsolate();
+
   NN* nn = NULL;
 
   if(args[0]->IsString()) {
@@ -907,38 +916,45 @@ Handle<Value> NN::New(const Arguments& args) {
   }
 
   else if(args[0]->IsArray()) {
-    Local<Array> l = Array::Cast(*args[0]);
+    Local<Array> l = Local<Array>::Cast(args[0]);
 
     if(l->Length() < 2) {
-      ThrowException(
-        Exception::TypeError(String::New("Less than 2 Layers")));
-      return scope.Close(Undefined());
+      isolate->ThrowException(
+        Exception::TypeError(String::NewFromUtf8(isolate, "Less than 2 Layers")));
+      args.GetReturnValue().SetUndefined();
+
+      return;
     }
 
     vector<int> layers(l->Length());
     for(unsigned int i = 0; i < l->Length(); i++) {
-      layers[i] = l->Get(Integer::New(i))->ToInteger()->Value();
+      layers[i] = l->Get(Integer::New(isolate, i))->Int32Value();
     }
 
     nn = new NN(layers);
   }
 
   else {
-    ThrowException(
-      Exception::TypeError(String::New("Layers expected as argument 0")));
-    return scope.Close(Undefined());
+    isolate->ThrowException(
+      Exception::TypeError(String::NewFromUtf8(isolate, "Layers expected as argument 0")));
+
+    args.GetReturnValue().SetUndefined();
+
+    return;
   }
 
   /* wrapping */
   nn->Wrap(args.This());
-  return args.This();
+
+  args.GetReturnValue().Set(args.This());
 }
 
 //
 // ### SetLog
 //
-Handle<Value> NN::SetLog(const Arguments& args) {
-  HandleScope scope;
+void NN::SetLog(const FunctionCallbackInfo<v8::Value>& args) {
+  Isolate* isolate = args.GetIsolate();
+
   NN* nn = ObjectWrap::Unwrap<NN>(args.This());
 
   bool status = false;
@@ -946,14 +962,16 @@ Handle<Value> NN::SetLog(const Arguments& args) {
     status = args[0]->ToBoolean()->Value();
   }
   else {
-    ThrowException(
-      Exception::TypeError(String::New("Boolean expected as argument 0")));
-    return scope.Close(Undefined());
+    isolate->ThrowException(
+      Exception::TypeError(String::NewFromUtf8(isolate, "Boolean expected as argument 0")));
+    args.GetReturnValue().SetUndefined();
+
+    return;
   }
 
   nn->set_log(status);
 
-  return scope.Close(Undefined());
+  args.GetReturnValue().SetUndefined();
 }
 
 /******************************************************************************/
@@ -963,33 +981,28 @@ Handle<Value> NN::SetLog(const Arguments& args) {
 //
 // ### Init
 //
-void NN::Init(Handle<Object> exports)
+void NN::Init(Local<Object> exports)
 {
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("NN"));
+  Isolate* isolate = exports->GetIsolate();
+
+  Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, New);
+  tpl->SetClassName(String::NewFromUtf8(isolate, "NN"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("train_set_add"),
-      FunctionTemplate::New(TrainSetAdd)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("train"),
-      FunctionTemplate::New(Train)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("mt_train"),
-      FunctionTemplate::New(MTTrain)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("run"),
-      FunctionTemplate::New(Run)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("to_string"),
-      FunctionTemplate::New(ToString)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("get_state"),
-      FunctionTemplate::New(GetState)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("set_log"),
-      FunctionTemplate::New(SetLog)->GetFunction());
+  NODE_SET_PROTOTYPE_METHOD(tpl, "train_set_add", TrainSetAdd);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "train", Train);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "mt_train", MTTrain);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "run", Run);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "to_string", ToString);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "get_state", GetState);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "set_log", SetLog);
 
-  Persistent<Function> constructor =
-    Persistent<Function>::New(tpl->GetFunction());
-  exports->Set(String::NewSymbol("NN"), constructor);
+  constructor.Reset(isolate, tpl->GetFunction());
+
+  exports->Set(String::NewFromUtf8(isolate, "NN"), tpl->GetFunction());
 }
 
-void InitAll(Handle<Object> exports) {
+void InitAll(Local<Object> exports) {
   NN::Init(exports);
 }
 
@@ -1038,23 +1051,26 @@ void MT_NN::train_start(uv_work_t* req) {
 // ### train_done
 //
 void MT_NN::train_done(uv_work_t* req, int status) {
-  HandleScope scope;
+  Isolate* isolate = Isolate::GetCurrent();
+
   TrainWorker* worker = static_cast<TrainWorker*>(req->data);
 
   if(!worker->error_message.empty()) {
     Local<Value> err = Exception::Error(
-                         String::New(worker->error_message.c_str()));
+                         String::NewFromUtf8(isolate, worker->error_message.c_str()));
     Local<Value> argv[] = { err };
-    worker->cb->Call(Context::GetCurrent()->Global(), 1, argv);
+    worker->cb->Call(Null(isolate), 1, argv);
   }
   else {
     Local<Value> argv[] = {
-      Local<Value>::New(Null())
+      Null(isolate)
     };
-    worker->cb->Call(Context::GetCurrent()->Global(), 1, argv);
+
+    worker->cb->Call(Null(isolate), 1, argv);
   }
 
-  worker->cb.Dispose();
+  worker->cb.Clear();
+
   delete worker;
 }
 
